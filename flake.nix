@@ -18,8 +18,13 @@
       systems = import inputs.systems;
 
       perSystem =
-        { pkgs, ... }:
+        { self', pkgs, ... }:
         {
+          packages = {
+            default = self'.packages.vrchat-video-resolver-stub;
+            vrchat-video-resolver-stub = pkgs.callPackage ./pkgs/vrchat-video-resolver/package.nix { };
+          };
+
           formatter = pkgs.nixfmt-tree;
         };
     };
