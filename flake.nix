@@ -23,6 +23,7 @@
           packages = {
             default = self'.packages.vrchat-video-resolver-stub;
             vrchat-video-resolver-stub = pkgs.callPackage ./pkgs/vrchat-video-resolver/package.nix { };
+            vrchat-video-resolver-server = pkgs.callPackage ./pkgs/vrchat-video-resolver/server.nix { };
           };
 
           formatter = pkgs.nixfmt-tree;
