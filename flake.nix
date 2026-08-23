@@ -15,6 +15,22 @@
   outputs =
     inputs:
     inputs.flake-parts.lib.mkFlake { inherit inputs; } {
+      flake =
+        let
+          mkModule = import ./modules inputs;
+        in
+        {
+          nixosModules = {
+            default = inputs.self.nixosModules.vrchat-video-resolver;
+            vrchat-video-resolver = mkModule "nixos";
+          };
+
+          homeModules = {
+            default = inputs.self.homeModules.vrchat-video-resolver;
+            vrchat-video-resolver = mkModule "home-manager";
+          };
+        };
+
       systems = import inputs.systems;
 
       perSystem =
