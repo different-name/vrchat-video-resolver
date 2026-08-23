@@ -42,6 +42,23 @@
             vrchat-video-resolver-server = pkgs.callPackage ./pkgs/vrchat-video-resolver/server.nix { };
           };
 
+          checks = {
+            # covers the shellcheck over the resolver and the cross compile of the stub
+            inherit (self'.packages) vrchat-video-resolver-stub vrchat-video-resolver-server;
+
+            formatting = pkgs.runCommand "check-formatting" { nativeBuildInputs = [ pkgs.nixfmt ]; } ''
+              nixfmt --check $(find ${inputs.self} -name '*.nix')
+              touch $out
+            '';
+
+            server-compiles =
+              pkgs.runCommand "check-server-compiles" { nativeBuildInputs = [ pkgs.python3 ]; }
+                ''
+                  python3 -m py_compile ${./pkgs/vrchat-video-resolver/server.py}
+                  touch $out
+                '';
+          };
+
           formatter = pkgs.nixfmt-tree;
         };
     };
