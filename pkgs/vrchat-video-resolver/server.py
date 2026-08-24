@@ -34,7 +34,7 @@ def log(msg):
 
 
 class Unsupported(Exception):
-    # a livestream is expected to be unremuxable, anything else is worth reporting
+    # expected means plain resolution hits the same wall, so nobody needs telling
     def __init__(self, reason, expected):
         super().__init__(reason)
         self.expected = expected
@@ -55,7 +55,8 @@ def resolve(page, height):
          "--print", "%(requested_formats.1.url)s", "--", page],
         capture_output=True, text=True)
     if proc.returncode != 0:
-        raise Unsupported(proc.stderr.strip().split("\n")[-1][:160], expected=False)
+        # the selector ends in /b, so a failure here means nothing extracted at all
+        raise Unsupported(proc.stderr.strip().split("\n")[-1][:160], expected=True)
 
     out = proc.stdout.strip().split("\n")
     meta = out[0].split("|")
