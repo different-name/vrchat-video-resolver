@@ -303,5 +303,12 @@ class Handler(BaseHTTPRequestHandler):
             self.send_error(500)
 
 
+class Server(ThreadingHTTPServer):
+    def handle_error(self, request, client_address):
+        # media foundation drops idle connections, which is not worth a traceback
+        if sys.exc_info()[0] not in (BrokenPipeError, ConnectionResetError):
+            super().handle_error(request, client_address)
+
+
 log(f"listening on 127.0.0.1:{PORT}")
-ThreadingHTTPServer(("127.0.0.1", PORT), Handler).serve_forever()
+Server(("127.0.0.1", PORT), Handler).serve_forever()
