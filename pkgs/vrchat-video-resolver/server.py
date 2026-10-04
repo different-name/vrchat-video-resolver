@@ -42,9 +42,10 @@ class Unsupported(Exception):
 
 def resolve(page, height):
     # one call for both streams, the trailing /b keeps it succeeding when nothing matches
-    selector = (f"bv*[vcodec^=avc1][height<=?{height}]"
+    # bv not bv*, or a 360p cap takes format 18 and leaves no audio to merge
+    selector = (f"bv[vcodec^=avc1][height<=?{height}]"
                 "+ba[acodec^=mp4a][audio_channels<=2]/"
-                f"bv*[vcodec^=avc1][height<=?{height}]+ba[acodec^=mp4a]/b")
+                f"bv[vcodec^=avc1][height<=?{height}]+ba[acodec^=mp4a]/b")
     proc = subprocess.run(
         [YTDLP, "--ignore-config", "--no-playlist", "--no-warnings", "--simulate",
          "--no-check-formats", *COOKIES, "-f", selector,
