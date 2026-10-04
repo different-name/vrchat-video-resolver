@@ -107,6 +107,10 @@ def read_layout(url):
     if sidx_at is None:
         raise RuntimeError("stream has no sidx, cannot describe it as HLS")
 
+    # a long video's sidx runs past the 64k head
+    if sidx_at + sidx_len > len(head):
+        head = fetch(url, 0, sidx_at + sidx_len - 1)
+
     box = head[sidx_at + 8:sidx_at + sidx_len]
     timescale = struct.unpack(">I", box[8:12])[0]
     if box[0] == 0:
