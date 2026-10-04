@@ -241,20 +241,26 @@ class Library:
             building = self.building.setdefault(name, threading.Lock())
 
         with building:
-            with self.lock:
-                if name in self.segments:
-                    return self.segments[name]
-            began = time.time()
-            data = self.videos[key].segment(index)
-            log(f"  {name}: {len(data) // 1024}KB in {time.time() - began:.2f}s")
-            with self.lock:
-                self.segments[name] = data
-                self.bytes += len(data)
-                while self.bytes > CACHE_BYTES and len(self.segments) > 1:
-                    _, dropped = self.segments.popitem(last=False)
-                    self.bytes -= len(dropped)
-                self.building.pop(name, None)
-            return data
+            try:
+                with self.lock:
+                    if name in self.segments:
+                        return self.segments[name]
+                began = time.time()
+                data = self.videos[key].segment(index)
+                log(f"  {name}: {len(data) // 1024}KB in {time.time() - began:.2f}s")
+                with self.lock:
+                    self.segments[name] = data
+                    self.bytes += len(data)
+                    while self.bytes > CACHE_BYTES and len(self.segments) > 1:
+                        _, dropped = self.segments.popitem(last=False)
+                        self.bytes -= len(dropped)
+                return data
+            finally:
+                with self.lock:
+                    # a failed segment must not strand its lock, and a later thread may
+                    # already have installed its own
+                    if self.building.get(name) is building:
+                        del self.building[name]
 
 
 LIBRARY = Library()
