@@ -1,6 +1,10 @@
 port=$1
 blob=$2
 
+# steam's container points these at a newer host glibc than our own yt-dlp's bash can
+# load, and nothing we run needs them
+unset LD_LIBRARY_PATH LD_PRELOAD
+
 LOGFILE=${XDG_CACHE_HOME:-$HOME/.cache}/vrchat-video-resolver/shim.log
 mkdir -p "$(dirname "$LOGFILE")"
 
