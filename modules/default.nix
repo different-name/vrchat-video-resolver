@@ -26,7 +26,28 @@ let
     }
   );
 
-  hasSteamConfig = lib.hasAttrByPath [ "programs" "steam" "config" "apps" ] options;
+  steamConfigPath = lib.findFirst (path: lib.hasAttrByPath (path ++ [ "apps" ]) options) null [
+    [
+      "programs"
+      "steam-config"
+    ]
+    [
+      "programs"
+      "steam"
+      "config"
+    ]
+  ];
+  hasSteamConfig = steamConfigPath != null;
+  legacySteamConfig =
+    steamConfigPath == [
+      "programs"
+      "steam"
+      "config"
+    ];
+  vrchatAppPath = steamConfigPath ++ [
+    "apps"
+    vrchatAppId
+  ];
   toolsPath = "drive_c/users/steamuser/AppData/LocalLow/VRChat/VRChat/Tools/yt-dlp.exe";
   vrchatAppId = "438100";
 in
@@ -113,7 +134,7 @@ in
       description = ''
         Whether to configure VRChat through steam-config-nix.
 
-        Installs the replacement `yt-dlp.exe` into VRChat's prefix and ties the server to the app's systemd target, so it runs only while the game is running. Requires the steam-config-nix module.
+        Serves the replacement `yt-dlp.exe` in VRChat's prefix and ties the server to the app's systemd target, so it runs only while the game is running. Requires the steam-config-nix module.
       '';
     };
 
@@ -173,22 +194,33 @@ in
 
       # only touch steam-config-nix's options when its module is actually imported
       (lib.optionalAttrs hasSteamConfig (
-        lib.mkIf cfg.steamConfig.enable {
-          services.vrchat-video-resolver.boundTo =
-            lib.mkDefault
-              config.programs.steam.config.apps.${vrchatAppId}.systemd.target.unitName;
-
+        lib.mkIf cfg.steamConfig.enable (
+          {
+            services.vrchat-video-resolver.boundTo = lib.mkDefault (lib.getAttrFromPath vrchatAppPath config)
+              .systemd.target.unitName;
+          }
           # keyed by id, so this works whatever the app is named
-          programs.steam.config.apps.${vrchatAppId} = {
+          // lib.setAttrByPath vrchatAppPath {
             name = lib.mkDefault "VRChat";
             systemd.enable = true;
-            files.prefix.place.${toolsPath} = {
-              source = "${stub}/bin/yt-dlp.exe";
-              # vrchat replaces this at launch unless it is read-only
-              mode = "lock";
-            };
-          };
-        }
+            files.prefix =
+              if legacySteamConfig then
+                {
+                  place.${toolsPath} = {
+                    source = "${stub}/bin/yt-dlp.exe";
+                    mode = "lock";
+                  };
+                }
+              else
+                {
+                  overlay.${toolsPath} = {
+                    source = "${stub}/bin/yt-dlp.exe";
+                    # vrchat replaces this at launch unless it is read-only
+                    readOnly = true;
+                  };
+                };
+          }
+        )
       ))
     ]
   );
