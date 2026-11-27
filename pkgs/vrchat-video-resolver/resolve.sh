@@ -13,7 +13,18 @@ log() { printf '%s %s\n' "$(date +%H:%M:%S)" "$*" >>"$LOGFILE"; }
 scratch=$(mktemp -d)
 trap 'rm -rf "$scratch"' EXIT
 
-notify() { "$NOTIFY_SEND" -u critical "VRChat video" "$1" >/dev/null 2>&1 || true; }
+NOTIFY_STAMP=$(dirname "$LOGFILE")/last-notify
+
+# worlds retry failed videos in a loop, so stay quiet until 10 minutes pass without a failure
+notify() {
+  if [ -n "$(find "$NOTIFY_STAMP" -mmin -10 2>/dev/null)" ]; then
+    touch "$NOTIFY_STAMP"
+    log "  notification suppressed: $1"
+    return
+  fi
+  touch "$NOTIFY_STAMP"
+  "$NOTIFY_SEND" -u critical "VRChat video" "$1" >/dev/null 2>&1 || true
+}
 
 # connect before doing any work, so the stub can tell a failed launch from a slow resolve
 if ! exec 3<>/dev/tcp/127.0.0.1/"$port"; then
